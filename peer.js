@@ -1,45 +1,20 @@
-let isOnline=false, peer, conn;
-
-// 2️⃣ Escolha do modo
-document.getElementById("offlineBtn").onclick = ()=>{
-    modeScreen.style.display="none";
-    startGame();
-};
-document.getElementById("onlineBtn").onclick = ()=>{
-    modeScreen.style.display="none";
-    onlineScreen.style.display="flex";
-    isOnline = true;
+// Recebe dados de outros jogadores
+window.handlePeerData = (data) => {
+    console.log("Dados recebidos:", data);
+    // Ex: atualizar posições ou chat
 };
 
-// 3️⃣ Online
-document.getElementById("createServerBtn").onclick = ()=>{
-    const id = document.getElementById("peerIdInput").value || undefined;
-    peer = new Peer(id);
-    peer.on('open', id=>{
-        alert(`Servidor criado! Seu ID: ${id}`);
-        onlineScreen.style.display="none";
-        startGame();
-    });
-    peer.on('connection', c=>{
-        conn = c;
-        setupConnection(conn);
-    });
-};
-document.getElementById("joinServerBtn").onclick = ()=>{
-    const serverId = document.getElementById("peerIdInput").value;
-    if(!serverId) return alert("Digite o ID do servidor!");
-    peer = new Peer();
-    conn = peer.connect(serverId);
-    conn.on('open', ()=>{
-        alert("Conectado ao servidor!");
-        onlineScreen.style.display="none";
-        startGame();
-    });
-    setupConnection(conn);
-};
-function setupConnection(c){
-    c.on('data', data=>{
-        console.log("Recebeu:",data);
-        // Aqui você pode atualizar pinguins online ou chat
-    });
+// Envia sua posição
+function sendPosition() {
+    if (!isOnline) return;
+    const data = {
+        x: penguin.x,
+        y: penguin.y,
+        username,
+        color: usernameColor
+    };
+    if (window.sendData) sendData(data);
 }
+
+// Chame sendPosition() no update() ou a cada 100ms
+setInterval(sendPosition, 100);
