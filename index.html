@@ -2,11 +2,8 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>BP Offline / Online</title>
+<title>BP Offline</title>
 <link rel="icon" type="image/x-icon" href="icon.png">
-
-<!-- PeerJS -->
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 
 <style>
 @font-face {
@@ -15,156 +12,133 @@
 }
 
 body {
-    margin:0;
-    font-family:'cpBurbankSmall',Arial,sans-serif;
-    overflow:hidden;
+    margin: 0;
     background: radial-gradient(circle, rgba(46,71,170,1) 0%, rgba(23,35,85,1) 100%);
-    color:white;
+    overflow: hidden;
+    font-family: 'cpBurbankSmall', Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: white;
 }
 
 canvas {
-    display:block;
-    background:#1e90ff;
+    display: block;
+    background: #1e90ff;
 }
 
-/* Telas */
-.tela {
-    position:absolute;
-    top:0;left:0;
-    width:100%;height:100%;
+#loaderScreen, #usernameScreen {
+    position: absolute;
+    top:0; left:0;
+    width:100%;
+    height:100%;
     display:flex;
     flex-direction:column;
     justify-content:center;
     align-items:center;
     background: radial-gradient(circle, rgba(46,71,170,1) 0%, rgba(23,35,85,1) 100%);
-    z-index:20;
-}
-
-.tela input, .tela button {
-    margin:8px;
-    padding:10px;
-    font-size:18px;
-    border-radius:6px;
-    border:none;
-    font-family:'cpBurbankSmall',Arial,sans-serif;
-}
-
-.tela button {
-    cursor:pointer;
-    background:#1e90ff;
-    color:white;
-    font-weight:bold;
+    z-index: 10;
 }
 
 .loader {
     width:100px;
     height:100px;
     background: url('assets/load.png') no-repeat center center;
-    background-size:contain;
+    background-size: contain;
     filter: brightness(0) invert(1);
     animation: rotate 2s ease-in-out infinite;
 }
 
 @keyframes rotate {
-    0%{transform:rotate(0deg);}
-    50%{transform:rotate(180deg);}
-    100%{transform:rotate(360deg);}
+    0% { transform: rotate(0deg);}
+    50% { transform: rotate(180deg);}
+    100% { transform: rotate(360deg);}
 }
 
 .loading-text {
-    margin-top:25px;
+    margin-top: 25px;
     font-size:26px;
     letter-spacing:1px;
 }
 
 .dots::after {
-    content:'.';
-    animation:dots 1.5s infinite;
+    content: '.';
+    animation: dots 1.5s infinite;
 }
 
 @keyframes dots {
-    0%{content:'.';}
-    33%{content:'..';}
-    66%{content:'...';}
-    100%{content:'.';}
+    0% { content: '.';}
+    33% { content: '..';}
+    66% { content: '...';}
+    100% { content: '.';}
+}
+
+/* Tela de username */
+#usernameScreen input, #usernameScreen button {
+    margin: 8px;
+    padding: 10px;
+    font-size: 18px;
+    border-radius: 6px;
+    border: none;
+    font-family: 'cpBurbankSmall', Arial, sans-serif;
+}
+
+#usernameScreen button {
+    cursor: pointer;
+    background-color: #1e90ff;
+    color: white;
+    font-weight: bold;
 }
 </style>
 </head>
 <body>
 
-<!-- 1️⃣ Tela Username + Cor -->
-<div id="usernameScreen" class="tela">
-    <h2>Escolha seu username e cor</h2>
+<!-- Tela de username -->
+<div id="usernameScreen">
     <input type="text" id="usernameInput" placeholder="Digite seu username">
     <input type="color" id="colorPicker" value="#ff0000">
-    <button id="nextButton">Próximo</button>
-</div>
-
-<!-- 2️⃣ Tela Modo -->
-<div id="modeScreen" class="tela" style="display:none;">
-    <h2>Escolha o modo</h2>
-    <button id="offlineBtn">Offline</button>
-    <button id="onlineBtn">Online</button>
-</div>
-
-<!-- 3️⃣ Tela Online -->
-<div id="onlineScreen" class="tela" style="display:none;">
-    <input type="text" id="peerIdInput" placeholder="Digite um ID ou deixe em branco para gerar">
-    <button id="createServerBtn">Criar Servidor</button>
-    <button id="joinServerBtn">Entrar em Servidor</button>
+    <button id="startButton">Começar</button>
 </div>
 
 <!-- Loader -->
-<div id="loaderScreen" class="tela" style="display:none;">
-    <div class="loader"></div>
-    <div class="loading-text">Loading<span class="dots"></span></div>
+ 
+<!-- Música de fundo -->
+<audio id="bgMusic" src="assets/town.mp3" loop></audio>
+<div id="loaderScreen" style="display:none;">
+  <div class="loader"></div>
+  <div class="loading-text">Loading<span class="dots"></span></div>
 </div>
 
-<!-- Canvas do jogo -->
 <canvas id="game" width="1000" height="632"></canvas>
 
-<!-- Música -->
-<audio id="bgMusic" src="assets/town.mp3" loop></audio>
-
-<!-- Scripts do jogo -->
-<script src="peer.js"></script> <!-- PeerJS separado -->
 <script src="assets/penguin.js"></script>
 <script src="assets/towncollision.js"></script>
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+
 const bgMusic = document.getElementById("bgMusic");
 
 // Sprites
 const imgBase = new Image();
 imgBase.src = "assets/penguin_base.png";
+
 const imgColor = new Image();
 imgColor.src = "assets/penguin_color.png";
+
 const mapImg = new Image();
 mapImg.src = "assets/towntest.png";
 
-// Outras variáveis do jogo
 let username = "";
 let usernameColor = "#ff0000";
-let state="idle", frameIndex=0, frameTimer=0;
+let state = "idle";
+let frameIndex = 0;
+let frameTimer = 0;
 
 // Pinguim
-const penguin={x:400,y:250,targetX:400,targetY:250,speed:2.5,suffix:270,flip:false};
-let mouseX=400, mouseY=250;
-
-// Telas
-const usernameScreen = document.getElementById("usernameScreen");
-const modeScreen = document.getElementById("modeScreen");
-const onlineScreen = document.getElementById("onlineScreen");
-const loaderScreen = document.getElementById("loaderScreen");
-
-// Username + cor
-document.getElementById("nextButton").onclick = ()=>{
-    username = document.getElementById("usernameInput").value || "Player";
-    usernameColor = document.getElementById("colorPicker").value;
-    usernameScreen.style.display="none";
-    modeScreen.style.display="flex";
-};
+const penguin = {x:400, y:250, targetX:400, targetY:250, speed:2.5, suffix:270, flip:false};
+let mouseX = 400, mouseY = 250;
 
 // Mouse
 canvas.addEventListener("mousemove", e=>{
@@ -172,6 +146,7 @@ canvas.addEventListener("mousemove", e=>{
     mouseX = e.clientX - rect.left;
     mouseY = e.clientY - rect.top;
 });
+
 canvas.addEventListener("click", e=>{
     const rect = canvas.getBoundingClientRect();
     penguin.targetX = e.clientX - rect.left;
@@ -179,143 +154,12 @@ canvas.addEventListener("click", e=>{
     state="walk";
 });
 
-    
-// 2️⃣ Escolha do modo
-document.getElementById("offlineBtn").onclick = () => {
-    modeScreen.style.display="none";
-    startGame();
-};
-
-document.getElementById("onlineBtn").onclick = () => {
-    modeScreen.style.display="none";
-    onlineScreen.style.display="flex";
-    isOnline = true;
-};
-
-// 3️⃣ Online
-document.getElementById("createServerBtn").onclick = () => {
-    const id = document.getElementById("peerIdInput").value || undefined;
-    peer = new Peer(id, {
-        host: '0.peerjs.com', // ou use um servidor próprio
-        port: 443,
-        secure: true
-    });
-
-    peer.on('open', id => {
-        alert(`Servidor criado! Seu ID: ${id}`);
-        onlineScreen.style.display = "none";
-        startGame();
-    });
-
-    peer.on('connection', c => {
-        conn = c;
-        setupConnection(conn);
-        alert(`Novo jogador conectado: ${c.peer}`);
-    });
-
-    peer.on('error', err => {
-        console.log("PeerJS Error:", err);
-        alert("Erro ao criar servidor. Tente outro ID.");
-    });
-};
-
-document.getElementById("joinServerBtn").onclick = () => {
-    const serverId = document.getElementById("peerIdInput").value;
-    if(!serverId) return alert("Digite o ID do servidor!");
-    peer = new Peer(); // gera um ID aleatório
-    conn = peer.connect(serverId);
-
-    conn.on('open', () => {
-        alert("Conectado ao servidor!");
-        onlineScreen.style.display = "none";
-        startGame();
-    });
-
-    conn.on('data', data => {
-        console.log("Recebeu do servidor:", data);
-        // aqui você pode atualizar pinguins online, chat etc.
-    });
-
-    conn.on('error', err => {
-        console.log("Conexão PeerJS Error:", err);
-        alert("Erro ao conectar ao servidor.");
-    });
-
-    setupConnection(conn);
-};
-
-function setupConnection(c) {
-    c.on('data', data => {
-        console.log("Recebeu:", data);
-        // Aqui você pode atualizar pinguins online ou chat
-    });
-}
-
-// Cor e chat
-document.getElementById("colorPicker").addEventListener("input", e=>usernameColor=e.target.value);
-
-const chatInput = document.createElement("input");
-chatInput.type="text";
-chatInput.placeholder="Digite uma mensagem...";
-chatInput.style.position="absolute";
-chatInput.style.bottom="20px";
-chatInput.style.left="50%";
-chatInput.style.transform="translateX(-50%)";
-chatInput.style.width="300px";
-chatInput.style.padding="10px";
-chatInput.style.borderRadius="12px 12px 0 0";
-chatInput.style.border="2px solid #888";
-chatInput.style.fontFamily="'cpBurbankSmall',Arial,sans-serif";
-chatInput.style.fontSize="16px";
-chatInput.style.outline="none";
-chatInput.style.background="rgba(0,0,0,0.6)";
-chatInput.style.color="white";
-document.body.appendChild(chatInput);
-
-let chatMessage="", chatTimer=0;
-chatInput.addEventListener("keydown", e=>{
-    if(e.key==="Enter" && chatInput.value.trim()!==""){
-        chatMessage = chatInput.value.trim();
-        chatInput.value="";
-        chatTimer = 200;
-    }
+// Cor escolhida
+document.getElementById("colorPicker").addEventListener("input", e => {
+    usernameColor = e.target.value;
 });
-function drawChatBubble(){
-    if(!chatMessage || chatTimer<=0) return;
-    chatTimer--;
-    const bubbleWidth = ctx.measureText(chatMessage).width + 20;
-    const bubbleHeight = 30;
-    const bubbleX = penguin.x - bubbleWidth/2;
-    const bubbleY = penguin.y - 30;
-    ctx.save();
-    ctx.fillStyle="rgba(255,255,255,0.9)";
-    ctx.strokeStyle="#888";
-    ctx.lineWidth=2;
-    ctx.beginPath();
-    ctx.roundRect(bubbleX,bubbleY,bubbleWidth,bubbleHeight,10);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle="#000";
-    ctx.font="16px cpBurbankSmall, sans-serif";
-    ctx.textAlign="center";
-    ctx.textBaseline="middle";
-    ctx.fillText(chatMessage,penguin.x,bubbleY+bubbleHeight/2);
-    ctx.restore();
-}
 
-// Funções do jogo
-function drawShadow(){
-    const shadowX=penguin.x, shadowY=penguin.y+50;
-    ctx.save();
-    ctx.translate(shadowX,shadowY);
-    ctx.fillStyle="rgba(0,0,0,0.5)";
-    ctx.filter="blur(8px)";
-    ctx.beginPath();
-    ctx.ellipse(0,0,30,12,0,0,Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-}
-
+// Direção
 function calculateDirection(dx,dy){
     const absX=Math.abs(dx), absY=Math.abs(dy);
     penguin.flip = dx<0;
@@ -324,35 +168,129 @@ function calculateDirection(dx,dy){
     return dy>0?225:135;
 }
 
+// Chat
+const chatInput = document.createElement("input");
+chatInput.type = "text";
+chatInput.placeholder = "Digite uma mensagem...";
+chatInput.style.position = "absolute";
+chatInput.style.bottom = "20px";
+chatInput.style.left = "50%";
+chatInput.style.transform = "translateX(-50%)";
+chatInput.style.width = "300px";
+chatInput.style.padding = "10px";
+chatInput.style.borderRadius = "12px 12px 0 0"; // cantos arredondados no topo
+chatInput.style.border = "2px solid #888";
+chatInput.style.fontFamily = "'cpBurbankSmall', Arial, sans-serif";
+chatInput.style.fontSize = "16px";
+chatInput.style.outline = "none";
+chatInput.style.background = "rgba(0,0,0,0.6)";
+chatInput.style.color = "white";
+document.body.appendChild(chatInput);
+
+// Armazena mensagens recentes
+let chatMessage = "";
+let chatTimer = 0;
+
+// Evento de tecla
+chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && chatInput.value.trim() !== "") {
+        chatMessage = chatInput.value.trim();
+        chatInput.value = "";
+        chatTimer = 200; // frames para mostrar bubble
+    }
+});
+
+// Atualização do chat bubble
+function drawChatBubble() {
+    if (!chatMessage || chatTimer <= 0) return;
+    chatTimer--;
+
+    const bubbleWidth = ctx.measureText(chatMessage).width + 20;
+    const bubbleHeight = 30;
+    const bubbleX = penguin.x - bubbleWidth/2;
+    const bubbleY = penguin.y - 30;
+
+    // bubble background
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.strokeStyle = "#888";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    // texto
+    ctx.fillStyle = "#000";
+    ctx.font = "16px cpBurbankSmall, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(chatMessage, penguin.x, bubbleY + bubbleHeight/2);
+    ctx.restore();
+}
+
+// Shadow
+function drawShadow(){
+    const shadowX=penguin.x;
+    const shadowY=penguin.y + 50;
+    ctx.save();
+    ctx.translate(shadowX,shadowY);
+    ctx.fillStyle="rgba(0,0,0,0.5)";
+    ctx.filter="blur(8px)";
+    ctx.beginPath();
+    ctx.ellipse(0,0,30,12,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(shadowX,shadowY);
+    ctx.strokeStyle="#1e90ff";
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.ellipse(0,0,30,12,0,0,Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+}
+
+// Atualização
 function update(){
     const dx=penguin.targetX-penguin.x;
     const dy=penguin.targetY-penguin.y;
-    const dist=Math.hypot(dx,dy);
-    if(dist>2){
-        const moveX = dx/dist*penguin.speed;
-        const moveY = dy/dist*penguin.speed;
-        const nextX = penguin.x + moveX;
-        const nextY = penguin.y + moveY;
-        const gridNextX = Math.floor(nextX/50);
-        const gridNextY = Math.floor(nextY/50);
-        if(touchableSquares.some(sq=>sq.x===gridNextX && sq.y===gridNextY)){
-            penguin.x=nextX;
-            penguin.y=nextY;
-            penguin.suffix = calculateDirection(dx,dy);
-            state="walk";
-            frameTimer++;
-            if(frameTimer>3){frameIndex++;frameTimer=0;}
-        } else {
-            penguin.targetX=penguin.x;
-            penguin.targetY=penguin.y;
-            state="idle"; frameIndex=0;
-        }
+    const dist = Math.hypot(dx,dy);
+if(dist > 2){
+    const moveX = dx / dist * penguin.speed;
+    const moveY = dy / dist * penguin.speed;
+
+    const nextX = penguin.x + moveX;
+    const nextY = penguin.y + moveY;
+
+    // verifica se o quadrado do próximo passo é permitido
+    const gridNextX = Math.floor(nextX / 50);
+    const gridNextY = Math.floor(nextY / 50);
+
+    if(touchableSquares.some(sq => sq.x === gridNextX && sq.y === gridNextY)){
+        // se permitido, atualiza posição
+        penguin.x = nextX;
+        penguin.y = nextY;
+        penguin.suffix = calculateDirection(dx, dy);
+        state = "walk";
+        frameTimer++;
+        if(frameTimer > 3){ frameIndex++; frameTimer = 0; }
     } else {
-        state="idle"; frameIndex=0;
-        const lookDX = mouseX - penguin.x;
-        const lookDY = mouseY - penguin.y;
-        penguin.suffix = calculateDirection(lookDX,lookDY);
+        // se não permitido, para o pinguim
+        penguin.targetX = penguin.x;
+        penguin.targetY = penguin.y;
+        state = "idle";
+        frameIndex = 0;
     }
+} else {
+    state="idle";
+    frameIndex=0;
+    const lookDX = mouseX - penguin.x;
+    const lookDY = mouseY - penguin.y;
+    penguin.suffix = calculateDirection(lookDX, lookDY);
+}
+
     const frames = window.PenguinData[state].filter(f=>f.suffix===penguin.suffix);
     if(frameIndex>=frames.length) frameIndex=0;
 }
@@ -360,37 +298,56 @@ function update(){
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     drawShadow();
-    if(mapImg.complete) ctx.drawImage(mapImg,0,0);
+if(mapImg.complete){
+    ctx.drawImage(mapImg, 0, 0); // coloca o mapa como fundo
+}
     const frames = window.PenguinData[state].filter(f=>f.suffix===penguin.suffix);
     if(!frames.length) return;
     const frame = frames[frameIndex];
+
     const centerOffsetX = frame.w/2;
     const centerOffsetY = frame.h*0;
-    const drawX = penguin.flip?-penguin.x-centerOffsetX:penguin.x-centerOffsetX;
+
+    const drawX = penguin.flip ? -penguin.x-centerOffsetX : penguin.x-centerOffsetX;
     const drawY = penguin.y-centerOffsetY;
+
     ctx.save();
     if(penguin.flip) ctx.scale(-1,1);
-    ctx.drawImage(imgBase,frame.x,frame.y,frame.w,frame.h,drawX,drawY,frame.w,frame.h);
 
+    // 1️⃣ Desenha a base normal
+    ctx.drawImage(imgBase, frame.x, frame.y, frame.w, frame.h, drawX, drawY, frame.w, frame.h);
+
+    // 2️⃣ Desenha a camada color com a cor escolhida
+    // Criando canvas temporário
     const tmpCanvas = document.createElement("canvas");
-    tmpCanvas.width = frame.w; tmpCanvas.height = frame.h;
+    tmpCanvas.width = frame.w;
+    tmpCanvas.height = frame.h;
     const tmpCtx = tmpCanvas.getContext("2d");
-    tmpCtx.drawImage(imgColor,frame.x,frame.y,frame.w,frame.h,0,0,frame.w,frame.h);
-    tmpCtx.globalCompositeOperation="source-in";
-    tmpCtx.fillStyle=usernameColor;
-    tmpCtx.fillRect(0,0,frame.w,frame.h);
-    ctx.drawImage(tmpCanvas,drawX,drawY);
+
+    // Desenha penguin_color no canvas temporário
+    tmpCtx.drawImage(imgColor, frame.x, frame.y, frame.w, frame.h, 0, 0, frame.w, frame.h);
+
+    // Aplica a cor escolhida usando source-in
+    tmpCtx.globalCompositeOperation = "source-in";
+    tmpCtx.fillStyle = usernameColor;
+    tmpCtx.fillRect(0,0,frame.w, frame.h);
+
+    // Desenha resultado no canvas principal
+    ctx.drawImage(tmpCanvas, drawX, drawY);
+
     ctx.restore();
 
+    // Username
     ctx.font="18px cpBurbankSmall, sans-serif";
     ctx.textAlign="center";
     ctx.lineWidth=4;
     ctx.strokeStyle="black";
     ctx.fillStyle="white";
-    ctx.strokeText(username,penguin.x,penguin.y+frame.h/2+50);
-    ctx.fillText(username,penguin.x,penguin.y+frame.h/2+50);
+    ctx.strokeText(username, penguin.x, penguin.y + frame.h/2 + 50);
+    ctx.fillText(username, penguin.x, penguin.y + frame.h/2 + 50);
 }
 
+// Ajustar game loop
 function gameLoop(){
     update();
     draw();
@@ -398,24 +355,38 @@ function gameLoop(){
     requestAnimationFrame(gameLoop);
 }
 
-// Inicia o jogo (loader + loop)
-function startGame(){
-    loaderScreen.style.display="flex";
-    let loadedCount=0;
-    const onLoad = ()=>{
+document.getElementById("startButton").onclick = ()=> {
+    username = document.getElementById("usernameInput").value || "Player";
+
+    document.getElementById("usernameScreen").style.display = "none";
+    document.getElementById("loaderScreen").style.display = "flex";
+
+    let loadedCount = 0;
+    const onLoad = ()=> {
         loadedCount++;
-        if(loadedCount===2){
-            loaderScreen.style.display="none";
+        if(loadedCount === 2){
+            // quando base e color estiverem carregadas
+            document.getElementById("loaderScreen").style.display="none";
             gameLoop();
-            bgMusic.volume=0.5;
-            bgMusic.play().catch(err=>console.log("Autoplay impedido:",err));
+
+            // toca a música do mapa
+            bgMusic.volume = 0.5;
+            bgMusic.play().catch(err => console.log("Autoplay impedido:", err));
         }
     };
     imgBase.onload = onLoad;
     imgColor.onload = onLoad;
-    if(imgBase.complete && imgColor.complete) onLoad(),onLoad();
-}
+
+    // caso já estejam carregadas
+    if(imgBase.complete && imgColor.complete){
+        document.getElementById("loaderScreen").style.display="none";
+        gameLoop();
+
+        bgMusic.volume = 0.5;
+        bgMusic.play().catch(err => console.log("Autoplay impedido:", err));
+    }
+};
+
 </script>
 </body>
 </html>
-
